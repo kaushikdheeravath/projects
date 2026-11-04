@@ -20,22 +20,19 @@ full_deck = [
 cards = full_deck.copy()
 
 
-player_value = 0
-dealer_value = 0
-player_hand = []
-dealer_hand = []
-
 money = 1000
 
 def main():
-    global player_value, dealer_value, money, bet
+    global player_value, dealer_value, money, bet, dealer_hand, player_hand
+    player_hand = []
+    dealer_hand = []
     bet = new_round()
     player_hand.append(pick_cards())
     dealer_hand.append(pick_cards())
     player_hand.append(pick_cards())
     dealer_hand.append(pick_cards())
-    pvalue()
-    dvalue()
+    player_value = pvalue(player_hand)
+    dealer_value = pvalue(dealer_hand)
 
     if player_value == 21:
         if dealer_value == 21:
@@ -58,14 +55,13 @@ def main():
         hit_stand()
 
 
-
 def pick_cards():
     card = random.choice(cards)
     cards.remove(card)
     return card
 
 def new_round():
-    global cards, money
+    global cards
     cards = full_deck.copy()
     while True:
         print("---------------------------------")
@@ -88,45 +84,29 @@ def new_round():
         except ValueError:
             print("Invalid. Type '1' if your done or type a whole number")
 
-def pvalue():
-    global player_value, bet, money
-    player_value = 0
-    aces = player_hand.count("A")
-    for card in player_hand:
+def pvalue(hand):
+    value = 0
+    aces = hand.count("A")
+    for card in hand:
         if card == "A":
-            player_value += 11
+            value += 11
         elif card in ["J", "Q", "K"]:
-            player_value += 10
+            value += 10
         else:
-            player_value += int(card)
-    while player_value > 21 and aces > 0:
-        player_value -= 10
+            value += int(card)
+    while value > 21 and aces > 0:
+        value -= 10
         aces -= 1
-
-def dvalue():
-    global dealer_value, money, bet
-    dealer_value = 0
-    aces = dealer_hand.count("A")
-    for card in dealer_hand:
-        if card == "A":
-            dealer_value += 11
-        elif card in ["J", "Q", "K"]:
-            dealer_value += 10
-        else:
-            dealer_value += int(card)
-    while dealer_value > 21 and aces > 0:
-        dealer_value -= 10
-        aces -= 1
-
+    return value
 
 
 def hit_stand():
-    global money
+    global money, player_value
     while True:
         answer = input("\nHit or Stand? ").casefold().strip()
         if answer == "hit":
             player_hand.append(pick_cards())
-            pvalue()
+            player_value = pvalue(player_hand)
             if player_value < 21:
                 print(f"Your hand: {player_hand} - {player_value}")
                 print(f"Dealer hand: [hole, {dealer_hand[1]}]")
@@ -183,7 +163,7 @@ def stand():
                     break
         else:
             dealer_hand.append(pick_cards())
-            dvalue()
+            dealer_value = pvalue(dealer_hand)
 
 def end():
     print("---------------------------------------")
@@ -198,16 +178,11 @@ def end():
         sys.exit()
 
 print("\n\nWelcome to Blackjack! You start with $1000 and see how high you can go!\nPlay smart and try not to go broke!\n")
-main()
 
 while True:
     try:
         if money == 0:
             raise IndexError
-        player_value = 0
-        dealer_value = 0
-        player_hand = []
-        dealer_hand = []
         main()
     except IndexError:
         end()
