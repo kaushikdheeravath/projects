@@ -16,7 +16,7 @@ full_deck = [
     "Q", "Q", "Q", "Q",
     "K", "K", "K", "K"
 ]
-
+test_deck = ["A", "7", "A", "8", "5", "3", "8", "4"]
 cards = full_deck.copy()
 
 
@@ -46,19 +46,31 @@ def main():
             print(f"BLACKJACK!!! You win {bet * 1.5}")
             money = bet * 1.5 + money
             return
-        
+
     print(f"\nYour hand: {player_hand} - {player_value}")
     print(f"Dealer hand: [hole, {dealer_hand[1]}]")
-    if player_hand[0] == player_hand[1]:
-        print("Do you want to hit, stand, or split")
-    if player_value < 21:
-        hit_stand()
+    if player_hand[0] == player_hand[1] and money >= 2 * bet:
+        action = input("Hit, split or stand? ").casefold().strip()
+        if action == "split":
+            split()
+        elif action == "hit" or action == "stand":
+            hit_stand(action)
+        else:
+            print("Invalid Input")
+    else:
+        while player_value < 21 and dealer_value <= 21:
+            action = input("Hit or stand? ").casefold().strip()
+            if action == "hit" or action == "stand":
+                hit_stand(action)
+            else:
+                print("Invalid Input")
 
 
 def pick_cards():
     card = random.choice(cards)
     cards.remove(card)
     return card
+
 
 def new_round():
     global cards
@@ -100,70 +112,126 @@ def pvalue(hand):
     return value
 
 
-def hit_stand():
-    global money, player_value
-    while True:
-        answer = input("\nHit or Stand? ").casefold().strip()
-        if answer == "hit":
-            player_hand.append(pick_cards())
-            player_value = pvalue(player_hand)
-            if player_value < 21:
-                print(f"Your hand: {player_hand} - {player_value}")
-                print(f"Dealer hand: [hole, {dealer_hand[1]}]")
-            elif player_value == 21:
-                stand()
-                break
-            else:
-                print(f"\nYour hand: {player_hand} - {player_value}")
-                print(f"Dealer hand: {dealer_hand} - {dealer_value}")
-                print("You lost.")
-                money -= bet
-                break
-        elif answer == "stand":
+def hit_stand(answer):
+    global money, player_value, next
+    if answer == "hit":
+        player_hand.append(pick_cards())
+        player_value = pvalue(player_hand)
+        if player_value < 21:
+            print(f"\nYour hand: {player_hand} - {player_value}")
+            print(f"Dealer hand: [hole, {dealer_hand[1]}]")
+        elif player_value == 21:
             stand()
-            break
         else:
-            print("Invalid Input")
+            print(f"\nYour hand: {player_hand} - {player_value}")
+            print(f"Dealer hand: {dealer_hand} - {dealer_value}")
+            print("You lost.")
+            money -= bet
+    if answer == "stand":
+        stand()
 
 
 def stand():
-    global money, dealer_value
-    while True:
-        if dealer_value > 21:
-            print(f"Your hand: {player_hand} - {player_value}")
+    global money, dealer_value, player_value
+    if dealer_value > 21:
+        print(f"\nYour hand: {player_hand} - {player_value}")
+        print(f"Dealer hand: {dealer_hand} - {dealer_value}")
+        print("Dealer busted. You won, congrats!")
+        money += bet
+    elif dealer_value >= 17:
+        if player_value > dealer_value:
+            print(f"\nPlayer hand: {player_hand} - {player_value}")
             print(f"Dealer hand: {dealer_hand} - {dealer_value}")
-            print("Dealer busted. You won, congrats!")
+            print("You Won, Congrats!")
             money += bet
-            break
-        elif dealer_value >= 17:
-            if player_value > dealer_value:
+        elif player_value == dealer_value:
+            if len(dealer_hand) == 2 and dealer_value == 21:
                 print(f"\nPlayer hand: {player_hand} - {player_value}")
                 print(f"Dealer hand: {dealer_hand} - {dealer_value}")
-                print("You Won, Congrats!")
-                money += bet
-                break
-            elif player_value == dealer_value:
-                if len(dealer_hand) == 2 and dealer_value == 21:
-                    print(f"\nPlayer hand: {player_hand} - {player_value}")
-                    print(f"Dealer hand: {dealer_hand} - {dealer_value}")
-                    print("You lost, dealer got a natural blackjack")
-                    money -= bet
-                    break
-                else:
-                    print(f"\nPlayer hand: {player_hand} - {player_value}")
-                    print(f"Dealer hand: {dealer_hand} - {dealer_value}")
-                    print("Push")
-                    break
+                print("You lost, dealer got a natural blackjack")
+                money -= bet
             else:
-                if dealer_value <= 21:
-                    print(f"\nPlayer hand: {player_hand} - {player_value}")
-                    print(f"Dealer hand: {dealer_hand} - {dealer_value}")
-                    print("You lost")
-                    money -= bet
-                    break
+                print(f"\nPlayer hand: {player_hand} - {player_value}")
+                print(f"Dealer hand: {dealer_hand} - {dealer_value}")
+                print("Push")
+                dealer_value = 100     #sets dealer value above 21 so the same main() doesn't run and new round starts
         else:
-            dealer_hand.append(pick_cards())
-            dealer_value = pvalue(dealer_hand)
+            print(f"\nPlayer hand: {player_hand} - {player_value}")
+            print(f"Dealer hand: {dealer_hand} - {dealer_value}")
+            print("You lost")
+            money -= bet
+        dealer_value = 100          #sets dealer value above 21 so the same main() doesn't run again
+    while dealer_value < 17:
+        dealer_hand.append(pick_cards())
+        dealer_value = pvalue(dealer_hand)
+        stand()
+
+def split():
+    global player_hand, split_hand, player_value, dealer_value, money, bet, dealer_hand
+    lost = 0
+    tie = 0
+    temp_card = player_hand[0]
+    player_hand.remove(temp_card)
+    split_hand = [temp_card]
+    player_hand.append(pick_cards())
+    split_hand.append(pick_cards())
+    print("1st hand")
+    player_value = pvalue(player_hand)
+    print(f"Your hand: {player_hand} - {player_value}")
+    print(f"Dealer hand: [hole, {dealer_hand[1]}]")
+    while player_value < 21:
+        action = input("Hit or stand? ").casefold().strip()
+        if action == "hit":
+            player_hand.append(pick_cards())
+            player_value = pvalue(player_hand)
+            print(f"Your 1st hand: {player_hand} - {player_value}")
+        elif action == "stand":
+            break
+        else:
+            print("Invalid Input")
+    if player_value > 21:
+        lost += 1
+    print("2nd hand")
+    split_value = pvalue(split_hand)
+    dealer_value = pvalue(dealer_hand)
+    print(f"Your hand: {player_hand} - {player_value}")
+    print(f"Dealer hand: [hole, {dealer_hand[1]}]")
+    while split_value < 21:
+        action = input("Hit or stand? ").casefold().strip()
+        if action == "hit":
+            split_hand.append(pick_cards())
+            split_value = pvalue(split_hand)
+            print(f"Your 2nd hand: {split_hand} - {split_value}")
+        elif action == "stand":
+            break
+        else:
+            print("Invalid Input")
+    if split_value > 21:
+            lost += 1
+    while dealer_value < 17:
+        dealer_hand.append(pick_cards())
+        dealer_value = pvalue(dealer_hand)
+    if dealer_value > player_value and player_value < 21 and dealer_value < 21:
+        lost += 1
+    if dealer_value > split_value and split_value < 21 and dealer_value < 21:
+        lost += 1
+    if dealer_value == split_value and player_value <= 21:
+        tie = 1
+    if dealer_value == player_value and player_value <= 21:
+        tie += 1
+    print(f"\nYour 1st hand: {player_hand} - {player_value}")
+    print(f"Your 2nd hand: {split_hand} - {split_value}")
+    print(f"Dealer hand: {dealer_hand} - {dealer_value}")
+    print(f"You won {2 - lost} hands and tied {tie} hands")
+    if lost == 2:
+        money -= 2 * bet
+    if lost == 1 and tie == 1:
+        money -= bet
+    if lost == 0 and tie == 0:
+        money += 2 * bet
+    if lost == 0 and tie == 1:
+        money += bet
+
 
 def end():
     print("---------------------------------------")
